@@ -122,10 +122,25 @@ input:focus,select:focus {
   background:#eef9ff;
 }
 
+.activity input:disabled {
+  cursor:not-allowed;
+}
+
+.activity:has(input:disabled):not(:has(input:checked)) {
+  opacity:.45;
+  cursor:not-allowed;
+}
+
 .hint {
   font-size:.85rem;
   color:var(--muted);
   margin-top:6px;
+}
+
+#activityCount {
+  color:var(--blue);
+  font-weight:700;
+  margin-left:5px;
 }
 
 .required { color:var(--error); }
@@ -286,7 +301,10 @@ button:disabled { opacity:.6; cursor:wait; }
 
       </div>
 
-      <p class="hint">Vous pouvez choisir plusieurs activités.</p>
+      <p class="hint">
+        Vous pouvez choisir jusqu'à 3 activités maximum.
+        <strong id="activityCount">0/3</strong>
+      </p>
     </div>
 
     <button type="submit" id="submitBtn">
@@ -304,6 +322,32 @@ const ENDPOINT = "https://script.google.com/macros/s/AKfycbw3xmllEAZe3QVJIgGOWJz
 const form = document.getElementById("form");
 const msg = document.getElementById("msg");
 const btn = document.getElementById("submitBtn");
+
+const activityCheckboxes = document.querySelectorAll(
+  'input[name="activites"]'
+);
+
+const activityCount = document.getElementById("activityCount");
+
+// Limiter le choix à 3 activités maximum
+function updateActivities() {
+  const selected = document.querySelectorAll(
+    'input[name="activites"]:checked'
+  ).length;
+
+  activityCount.textContent = selected + "/3";
+
+  activityCheckboxes.forEach(checkbox => {
+    checkbox.disabled = selected >= 3 && !checkbox.checked;
+  });
+}
+
+// Actualiser les choix à chaque changement
+activityCheckboxes.forEach(checkbox => {
+  checkbox.addEventListener("change", updateActivities);
+});
+
+updateActivities();
 
 function showMsg(text, type) {
   msg.textContent = text;
@@ -356,6 +400,11 @@ form.addEventListener("submit", async function(e) {
     return;
   }
 
+  if (data.activites.length > 3) {
+    showMsg("Vous pouvez choisir 3 activités maximum.", "err");
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = "Envoi en cours...";
 
@@ -370,6 +419,8 @@ form.addEventListener("submit", async function(e) {
     });
 
     form.reset();
+
+    updateActivities();
 
     showMsg(
       "Votre demande a été envoyée. Vérifiez la confirmation de votre inscription.",
